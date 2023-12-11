@@ -1,61 +1,111 @@
-#include <SFML/Audio.hpp>
-#include <SFML/Graphics.hpp>
 #include <iostream>
-#include <chrono>
-#include <thread>
+#include <string>
+#include <SFML/Graphics.hpp>
 
-#ifdef __linux__
-#include <X11/Xlib.h>
-#endif
+/// Declarații înainte (forward declarations) pentru clase
+class Inamici;
+class Proiectil;
 
-class SomeClass {
+class Jucator {
+private:
+    std::string nume;
+    int viata;
+    int scor;
+    int putereAtac;
+
 public:
-    explicit SomeClass(int) {}
+    Jucator(const std::string& nume, int viata, int scor, int putereAtac)
+            : nume(nume), viata(viata), scor(scor), putereAtac(putereAtac) {
+    }
+
+    void ataca(Inamici& inamic, Proiectil& proiectil);
+    int getPutereAtac() const;
+
+    friend std::ostream& operator<<(std::ostream& os, const Jucator& jucator) {
+        os << "Nume: " << jucator.nume << ", Viata: " << jucator.viata << ", Scor: " << jucator.scor << ", Putere de Atac: " << jucator.putereAtac;
+        return os;
+    }
 };
 
-SomeClass *getC() {
-    return new SomeClass{2};
+class Inamici {
+private:
+    std::string nume;
+    int viata;
+
+public:
+    Inamici(const std::string& nume, int viata) : nume(nume), viata(viata) {
+    }
+
+    void esteLovitDe(Jucator& jucator) {
+        viata -= jucator.getPutereAtac();
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const Inamici& inamic) {
+        os << "Nume: " << inamic.nume << ", Viata: " << inamic.viata;
+        return os;
+    }
+};
+
+class Proiectil {
+private:
+    int viteza;
+
+public:
+    Proiectil(int viteza) : viteza(viteza) {
+    }
+
+    void trage(Jucator& jucator, Inamici& inamic) {
+        inamic.esteLovitDe(jucator);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const Proiectil& proiectil) {
+        os << "Viteza proiectilului: " << proiectil.viteza;
+        return os;
+    }
+};
+
+// Definiții pentru funcțiile membru din Jucator
+void Jucator::ataca(Inamici& inamic, Proiectil& proiectil) {
+    proiectil.trage(*this, inamic);
+}
+
+int Jucator::getPutereAtac() const {
+    return putereAtac;
 }
 
 int main() {
-    #ifdef __linux__
-    XInitThreads();
-    #endif
+    Jucator jucator("Jucator 1", 100, 0, 20);
+    Inamici inamic("Inamic 1", 50);
+    Proiectil proiectil(20);
 
-    SomeClass *c = getC();
-    std::cout << c << "\n";
-    delete c;
+    std::cout << "Starea jucatorului: " << jucator << std::endl;
+    std::cout << "Starea inamicului: " << inamic << std::endl;
 
-    sf::RenderWindow window;
-    // NOTE: sync with env variable APP_WINDOW from .github/workflows/cmake.yml:30
-    window.create(sf::VideoMode({800, 700}), "My Window", sf::Style::Default);
-    window.setVerticalSyncEnabled(true);
-    //window.setFramerateLimit(60);
+    jucator.ataca(inamic, proiectil);
 
-    while(window.isOpen()) {
-        sf::Event e;
-        while(window.pollEvent(e)) {
-            switch(e.type) {
-            case sf::Event::Closed:
+    std::cout << "Starea jucatorului după atac: " << jucator << std::endl;
+    std::cout << "Starea inamicului după atac: " << inamic << std::endl;
+
+    sf::RenderWindow window(sf::VideoMode(800, 600), "SFML Example");
+
+    // Creare cerc
+    sf::CircleShape circle(50.f);
+    circle.setFillColor(sf::Color::Green);
+
+    // Bucla principală
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
                 window.close();
-                break;
-            case sf::Event::Resized:
-                std::cout << "New width: " << window.getSize().x << '\n'
-                          << "New height: " << window.getSize().y << '\n';
-                break;
-            case sf::Event::KeyPressed:
-                std::cout << "Received key " << (e.key.code == sf::Keyboard::X ? "X" : "(other)") << "\n";
-                break;
-            default:
-                break;
-            }
         }
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(300ms);
+
+        // Logică jocului și desenare
+        // (Aici puteți adăuga codul pentru a desena nave, gloanțe, entități inamice, etc.)
 
         window.clear();
+        window.draw(circle);
         window.display();
     }
-
     return 0;
 }
